@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431863123519",
+    "project_id": "lensnap-ebf67",
+    "storage_bucket": "lensnap-ebf67.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431863123519:android:e32c097bbe0e591e9eb28a",
+        "android_client_info": {
+          "package_name": "com.lensnap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdzUF3P_ON__G90mUc9jmsx2lUTMmZHUA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
