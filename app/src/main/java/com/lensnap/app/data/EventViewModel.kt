@@ -4,6 +4,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,12 +20,17 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import com.lensnap.app.models.Comment
+import com.lensnap.app.ui.theme.screens.dashboard.convertToImageData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import com.google.firebase.firestore.DocumentSnapshot
 
 class EventViewModel(private val context: Context) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
@@ -49,6 +56,9 @@ class EventViewModel(private val context: Context) : ViewModel() {
 
     private val _eventTime = MutableLiveData<String>()
     val eventTime: LiveData<String> get() = _eventTime
+
+    private val _upcomingEvents = MutableStateFlow<List<Event>>(emptyList())
+    val upcomingEvents: StateFlow<List<Event>> get() = _upcomingEvents
 
     fun updateEventName(name: String) {
         _eventName.value = name
@@ -81,11 +91,20 @@ class EventViewModel(private val context: Context) : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    private val _events = MutableLiveData<List<Event>>()
-    val events: LiveData<List<Event>> get() = _events
+//    private val _events = MutableLiveData<List<Event>>()
+//    val events: LiveData<List<Event>> get() = _events
 
     private val _isRefreshing = MutableLiveData<Boolean>()
     val isRefreshing: LiveData<Boolean> get() = _isRefreshing
+
+
+    private var lastDocumentSnapshot: DocumentSnapshot? = null // Tracks the last document
+    private var isLoadingMore = false // Prevents multiple simultaneous loads
+    private val _events = MutableStateFlow<List<Event>>(emptyList())
+    val events: StateFlow<List<Event>> = _events
+
+//    var isRefreshing = MutableLiveData(false)
+
 
     private fun generatePairingCode(): String {
         return UUID.randomUUID().toString().substring(0, 8)
@@ -131,7 +150,29 @@ class EventViewModel(private val context: Context) : ViewModel() {
 
         return qrCodeUrl
     }
-    fun fetchEventImages(eventId: String, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
+
+    fun fetchUserEvents(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val querySnapshot = firestore.collection("events")
+                    .whereEqualTo("creatorId", userId)
+                    .get()
+                    .await()
+                val userEvents = querySnapshot.documents.mapNotNull { document ->
+                    document.toObject(Event::class.java)
+                }
+                _events.value = userEvents
+                Log.d("EventViewModel", "Fetched user events successfully")
+            } catch (e: Exception) {
+                Log.e("EventViewModel", "Error fetching user events: $e")
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
+    fun fetchEventImages(eventId: String, onSuccess: (SnapshotStateList<ImageData>) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
                 Log.d("EventViewModel", "Attempting to fetch images for eventId: $eventId")
@@ -151,31 +192,62 @@ class EventViewModel(private val context: Context) : ViewModel() {
                 imagesArray?.let { eventImages.addAll(it) }
 
                 Log.d("EventViewModel", "Fetched event images: $eventImages")
-                onSuccess(eventImages)
+                val imageDataList = convertToImageData(eventImages)
+                onSuccess(imageDataList)
             } catch (e: Exception) {
                 Log.e("EventViewModel", "Failed to fetch event images: ${e.message}", e)
                 onError(e.message ?: "Failed to fetch event images")
             }
         }
     }
-    fun fetchEvents() {
+
+    fun fetchUpcomingEventsByDate() {
+        // Fetch events from Firestore and filter by upcoming date and public status
         viewModelScope.launch {
-            _isRefreshing.value = true
             try {
-                val documents = firestore.collection("events").get().await()
-                val events = documents.map { document ->
-                    document.toObject(Event::class.java)
+                val currentDate = System.currentTimeMillis() // Get the current timestamp
+                Log.d("EventViewModel", "Current timestamp: $currentDate")
+
+                val documents = firestore.collection("events")
+                    .whereEqualTo("status", "public") // Only public events
+                    .get().await()
+
+                Log.d("EventViewModel", "Fetched ${documents.size()} events from Firestore")
+
+                val upcomingEvents = documents.mapNotNull { document ->
+                    val event = document.toObject(Event::class.java)
+
+                    try {
+                        // Parse event date into a timestamp
+                        val eventDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(event.date)?.time
+
+
+                        // Log event details
+                        Log.d(
+                            "EventViewModel",
+                            "Event fetched: ${event.name}, Date: ${event.date}, Image URL: ${event.imageUrl}, Parsed Date: $eventDate"
+                        )
+
+                        // Only include events that are in the future
+                        eventDate?.takeIf { it > currentDate }?.let {
+                            Log.d("EventViewModel", "Event is upcoming: ${event.name}, Timestamp: $eventDate")
+                            event
+                        }
+                    } catch (e: Exception) {
+                        Log.e("EventViewModel", "Error parsing date for event: ${event.name}, Exception: $e")
+                        null
+                    }
                 }
-                _events.value = events
-                Log.d("EventViewModel", "Fetched events successfully")
+
+                Log.d("EventViewModel", "Filtered ${upcomingEvents.size} upcoming events")
+                _upcomingEvents.value = upcomingEvents
             } catch (e: Exception) {
-                Log.e("EventViewModel", "Error fetching events: $e")
-            } finally {
-                _isRefreshing.value = false
+                Log.e("EventViewModel", "Error fetching upcoming events: $e")
             }
         }
     }
-        fun createEvent(
+
+    fun createEvent(
         event: Event,
         capturedImages: List<Bitmap>,
         galleryImages: List<Uri>,
@@ -205,7 +277,9 @@ class EventViewModel(private val context: Context) : ViewModel() {
                     id = eventId,
                     pairingCode = pairingCode,
                     qrCodeUrl = qrCodeUrl,
-                    imageUrl = eventImageUrl
+                    imageUrl = eventImageUrl,
+                    creatorId = event.creatorId,  // Ensure this field is included
+                    status = event.status  // Ensure this field is included
                 )
 
                 newEventRef.set(updatedEvent).await()
@@ -236,6 +310,118 @@ class EventViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
+    // Method to fetch paginated events
+    fun fetchEvents(limit: Long = 10) {
+        if (isLoadingMore) return // Prevent double-loading
+        isLoadingMore = true
+        _isRefreshing.value = true // Set refreshing state
+
+        viewModelScope.launch {
+            try {
+                val query = firestore.collection("events")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .limit(limit)
+
+                val finalQuery = lastDocumentSnapshot?.let { query.startAfter(it) } ?: query
+                val documents = finalQuery.get().await()
+
+                val newEvents = documents.map { it.toObject(Event::class.java) }
+                lastDocumentSnapshot = documents.documents.lastOrNull() // Update the last snapshot
+                _events.value = _events.value + newEvents // Append new events to the existing list
+
+                Log.d("EventViewModel", "Fetched ${newEvents.size} events successfully")
+            } catch (e: Exception) {
+                Log.e("EventViewModel", "Error fetching events: $e")
+            } finally {
+                isLoadingMore = false
+                _isRefreshing.value = false // Reset refreshing state
+            }
+        }
+    }
+
+    // Fetch event by ID
+    fun getEventById(eventId: String, onSuccess: (Event) -> Unit, onError: (String) -> Unit) {
+        if (eventId.isEmpty()) {
+            onError("Invalid event ID")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val eventRef = firestore.collection("events").document(eventId)
+                val documentSnapshot = eventRef.get().await()
+
+                if (documentSnapshot.exists()) {
+                    val event = documentSnapshot.toObject(Event::class.java)
+                    event?.let {
+                        onSuccess(it)
+                        Log.d("EventViewModel", "Fetched event: $event")
+                    } ?: onError("Event not found")
+                } else {
+                    onError("Event not found")
+                }
+            } catch (e: Exception) {
+                Log.e("EventViewModel", "Failed to get event by ID $eventId: ${e.message}", e)
+                onError("Failed to fetch event: ${e.message}")
+            }
+        }
+    }
+
+    // Update event details
+    fun updateEvent(
+        event: Event,
+        bitmap: Bitmap?, // Optional bitmap for a new image
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Upload image if a new one is provided
+                val imageUrl = if (bitmap != null) {
+                    uploadEventImageToStorage(bitmap, event.id) // Reuse the image upload logic
+                } else {
+                    event.imageUrl // Use the existing image URL if no new image is uploaded
+                }
+
+                // Update the event in Firestore
+                val updatedEvent = event.copy(imageUrl = imageUrl)
+                val eventRef = firestore.collection("events").document(updatedEvent.id)
+                eventRef.update(
+                    "name", updatedEvent.name,
+                    "description", updatedEvent.description,
+                    "imageUrl", updatedEvent.imageUrl,
+                    "date", updatedEvent.date,
+                    "time", updatedEvent.time,
+                    "location", updatedEvent.location,
+                    "status", updatedEvent.status
+                ).await()
+
+                onSuccess()
+                Log.d("EventViewModel", "Event updated successfully")
+            } catch (e: Exception) {
+                Log.e("EventViewModel", "Failed to update event: ${e.message}", e)
+                onError("Failed to update event: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteEvent(eventId: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val eventRef = firestore.collection("events").document(eventId)
+                eventRef.delete().await()
+
+                onSuccess()
+                Log.d("EventViewModel", "Event deleted successfully")
+            } catch (e: Exception) {
+                Log.e("EventViewModel", "Failed to delete event: ${e.message}", e)
+                onError(e.message ?: "Failed to delete event")
+            }
+        }
+    }
+
+
     private fun getImageBitmapFromUri(uri: Uri): Bitmap? {
         return try {
             Log.d("EventViewModel", "Retrieving image bitmap from URI: $uri")

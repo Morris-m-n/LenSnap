@@ -4,14 +4,28 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import java.util.Calendar
+
+val PrimaryBlue = Color(0xFF0D6EFD)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +67,7 @@ fun CreateEventDateTimeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Event Date & Time") }
+                title = { Text("Event Details", fontSize = 35.sp, fontWeight = FontWeight.Thin) }
             )
         },
         content = { paddingValues ->
@@ -65,23 +79,135 @@ fun CreateEventDateTimeScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(onClick = { datePickerDialog.show() }) {
-                    Text(text = if (eventDate.isEmpty()) "Select Date" else eventDate)
+                if (eventDate.isEmpty()) {
+                    Button(
+                        onClick = { datePickerDialog.show() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = "Calendar icon")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Select Date")
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { datePickerDialog.show() },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryBlue
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                        border = BorderStroke(1.dp, PrimaryBlue),  // Primary blue border
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = "Calendar icon")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(eventDate)
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { timePickerDialog.show() }) {
-                    Text(text = if (eventTime.isEmpty()) "Select Time" else eventTime)
+                if (eventTime.isEmpty()) {
+                    Button(
+                        onClick = { timePickerDialog.show() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AccessTime, contentDescription = "Clock icon")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Select Time")
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { timePickerDialog.show() },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryBlue
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(45.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                        border = BorderStroke(1.dp, PrimaryBlue),  // Primary blue border
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AccessTime, contentDescription = "Clock icon")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(eventTime)
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
+
+//                eventImageBitmap?.let { bitmap ->
+//                    Image(
+//                        bitmap = bitmap.asImageBitmap(),
+//                        contentDescription = "Event Image",
+//                        modifier = Modifier
+//                            .size(150.dp)
+//                            .clip(RoundedCornerShape(8.dp))
+//                    )
+//                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(onClick = onPrevious) {
+                    OutlinedButton(
+                        onClick = onPrevious,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryBlue
+                        ),
+                        border = BorderStroke(1.dp, PrimaryBlue),  // Primary blue border
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(45.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                    ) {
                         Text("Previous")
                     }
-                    Button(onClick = { onNext(eventDate, eventTime) }) {
-                        Text("Next")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (eventDate.isNotEmpty() && eventTime.isNotEmpty()) {
+                                onNext(eventDate, eventTime)
+                            } else {
+                                // Show error or feedback to user
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(45.dp),  // Increased height
+                        shape = RoundedCornerShape(8.dp), // Less border radius
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Next")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.Default.ArrowForward, contentDescription = "Forward Arrow")
+                        }
                     }
                 }
             }

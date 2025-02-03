@@ -5,6 +5,7 @@ agp = "8.7.2"
 coilCompose = "2.3.0"
 firebaseBom = "33.6.0"
 firebaseStorageKtx = "21.0.1"
+googleWebrtc = "1.0.32006"
 imagepicker = "2.1"
 kotlin = "2.0.0"
 coreKtx = "1.15.0"
@@ -20,6 +21,7 @@ firebaseDatabase = "21.0.0"
 navigationCompose = "2.8.4"
 firebaseFirestore = "25.1.1"
 firebaseStorage = "21.0.1"
+#webrtc = "1.0.32006" # You can use a different version if needed
 
 [libraries]
 accompanist-blur = { module = "com.google.accompanist:accompanist-blur", version.ref = "accompanistSystemuicontroller" }
@@ -31,6 +33,7 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose"
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
 firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
+google-webrtc = { module = "org.webrtc:google-webrtc", version.ref = "googleWebrtc" }
 imagepicker = { module = "com.github.dhaval2404:imagepicker", version.ref = "imagepicker" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -55,4 +58,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
-

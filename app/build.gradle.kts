@@ -127,4 +127,18 @@ dependencies {
 
     //Coil remember image painter
     implementation ("com.google.accompanist:accompanist-coil:0.15.0")
+
+    //WebRTC (calls)
+    implementation("io.github.webrtc-sdk:android:125.6422.06.1")
+
+    //permissions
+    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.3.1")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1")
+    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.3.1")
+
+    //Palette for detection of dominant color on a post/Image
+    implementation ("androidx.palette:palette-ktx:1.0.0")
+
+    //Video player
+    implementation ("com.google.android.exoplayer:exoplayer:2.14.2")
 }

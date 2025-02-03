@@ -15,8 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.lensnap.app.models.UserRegistration
-import com.lensnap.app.ui.theme.screens.dashboard.CustomTopAppBar
 import android.net.Uri
 import android.provider.MediaStore
 import android.widget.Toast
@@ -35,6 +33,7 @@ import com.lensnap.app.R
 import com.lensnap.app.data.UserViewModel
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import com.lensnap.app.models.UserRegistration
 
 private val AliceBlue = Color(0xFFF0F8FF)
 
@@ -56,7 +55,7 @@ fun EditProfileScreen(
     }
 
     Scaffold(
-        topBar = { CustomTopAppBar() },
+//        topBar = { CustomTopAppBar() },
         content = { paddingValues ->
             Box(
                 modifier = Modifier

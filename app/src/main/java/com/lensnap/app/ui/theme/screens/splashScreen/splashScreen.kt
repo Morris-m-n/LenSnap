@@ -17,86 +17,77 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lensnap.app.R
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 @Composable
 fun SplashScreen() {
-    val text = "LenSnap"
-    val animatedProgress = remember { Animatable(0f) }
+    val primaryColor = Color(0xFF0D6EFD) // Bootstrap Primary Blue color
 
-    // Launch an animation coroutine
-    LaunchedEffect(Unit) {
-        animatedProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 2000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            )
-        )
-    }
-
-    val bootstrapPrimaryColor = Color(0xFF007BFF) // Bootstrap Primary Blue color
-
-    // Background image
-    Image(
-        painter = painterResource(R.drawable.splashbackground),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier.fillMaxSize()
-    )
-
+    // Box to hold the splash screen content
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Transparent)
+            .background(Color.White)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize()
         ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                text.forEachIndexed { index, char ->
-                    val animatedColor = when (index) {
-                        3 -> bootstrapPrimaryColor.copy(alpha = animatedProgress.value)
-                        4, 5, 6 -> bootstrapPrimaryColor
-                        else -> Color.White
-                    }
-                    Text(
-                        text = char.toString(),
-                        fontSize = 40.sp,
-                        color = animatedColor,
-                        modifier = Modifier.padding(2.dp),
-                        textAlign = TextAlign.Center
-                    )
+            Canvas(modifier = Modifier.size(80.dp)) {
+                val path = Path().apply {
+                    moveTo(size.width * 0.1f, size.height * 0.5f) // Start point (tail)
+                    lineTo(size.width * 0.85f, size.height * 0.5f) // End point (tail)
+                    moveTo(size.width * 0.55f, size.height * 0.3f) // Start of the arrow head
+                    lineTo(size.width * 0.85f, size.height * 0.5f) // Tip of the arrow head
+                    lineTo(size.width * 0.55f, size.height * 0.7f) // End of the arrow head
                 }
+                drawPath(
+                    path = path,
+                    color = primaryColor,
+                    style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
             }
+        }
 
-            // Custom Text
-            Text(
-                text = "Capture every moment",
-                fontSize = 20.sp,
-                color = bootstrapPrimaryColor,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Progress Bar
-            LinearProgressIndicator(
-                progress = animatedProgress.value,
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(8.dp)
-                    .graphicsLayer { shadowElevation = 4.dp.toPx() },
-                color = bootstrapPrimaryColor,
-                trackColor = bootstrapPrimaryColor.copy(alpha = 0.3f)
-            )
+        // Creator text at the bottom of the screen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "by",
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Vector",
+                    fontSize = 20.sp,
+                    color = primaryColor,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

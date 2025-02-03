@@ -20,10 +20,10 @@ import coil.compose.rememberImagePainter
 import com.lensnap.app.data.PostRepository
 import com.lensnap.app.data.UserViewModel
 import com.lensnap.app.models.Post
-import com.lensnap.app.models.UserRegistration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.navigation.NavController
+import com.lensnap.app.models.UserRegistration
 
 @Composable
 fun UserProfileScreen(userViewModel: UserViewModel, userId: String, navController: NavController) {
