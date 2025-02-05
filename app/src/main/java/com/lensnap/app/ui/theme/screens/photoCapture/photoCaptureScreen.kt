@@ -3,6 +3,8 @@ package com.lensnap.app.ui.theme.screens
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Camera
 import android.net.Uri
 import android.opengl.EGLConfig
 import android.opengl.GLES20
@@ -22,6 +24,9 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,8 +36,6 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +51,36 @@ import java.util.UUID
 import com.google.accompanist.pager.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import com.google.common.util.concurrent.ListenableFuture
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
@@ -61,40 +94,9 @@ fun MainEventScreen(eventCode: String?, navController: NavHostController, viewMo
         modifier = Modifier.fillMaxSize()
     ) { page ->
         when (page) {
-            0 -> PhotoCaptureTab(eventCode, navController, viewModel)
+            0 -> CameraScreen(eventCode, navController, viewModel) // Directly launch CameraScreen
             1 -> EventRoomTab(eventCode)
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PhotoCaptureTab(eventCode: String?, navController: NavHostController, viewModel: EventViewModel) {
-    var showCameraScreen by remember { mutableStateOf(false) }
-
-    if (!showCameraScreen) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(
-                    onClick = { showCameraScreen = true },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = "Launch Camera", tint = MaterialTheme.colorScheme.primary)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                IconButton(
-                    onClick = { /* Open Gallery */ },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(Icons.Filled.PhotoLibrary, contentDescription = "Select from Gallery", tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-    } else {
-        CameraScreen(eventCode, navController, viewModel)
     }
 }
 
@@ -103,42 +105,31 @@ fun CameraScreen(eventCode: String?, navController: NavHostController, viewModel
     val context = LocalContext.current
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(false) }
-    var showDiscardDialog by remember { mutableStateOf(false) }
-    var showExitEventDialog by remember { mutableStateOf(false) }
-    var selectedFilter by remember { mutableStateOf<FilterType>(FilterType.None) }
+    val showDiscardDialog = remember { mutableStateOf(false) }
+    val showExitEventDialog = remember { mutableStateOf(false) }
+    val selectedFilter = remember { mutableStateOf(FilterType.None) }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val previewView = remember { PreviewView(context) }
     val gpuImage = remember { GPUImage(context) }
 
-    // Setup Camera with Filters Applied in Real-Time
-    LaunchedEffect(selectedFilter) {
-        cameraProviderFuture.addListener({
-            try {
-                val cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-                val cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                    .build()
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(context as LifecycleOwner, cameraSelector, preview)
-
-                // Apply the selected filter
-                applyPreviewFilter(gpuImage, selectedFilter)
-            } catch (e: Exception) {
-                Log.e("Camera", "Camera initialization failed: ${e.message}")
-            }
-        }, ContextCompat.getMainExecutor(context))
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val bitmap = getBitmapFromUri(context, it)
+            capturedBitmap = bitmap
+        }
     }
+
+    SetupCamera(cameraProviderFuture, previewView, selectedFilter, gpuImage)
 
     // Back press handling
     BackHandler {
         if (capturedBitmap != null) {
-            showDiscardDialog = true
+            showDiscardDialog.value = true
         } else {
-            showExitEventDialog = true
+            showExitEventDialog.value = true
         }
     }
 
@@ -148,181 +139,318 @@ fun CameraScreen(eventCode: String?, navController: NavHostController, viewModel
             modifier = Modifier.fillMaxSize()
         )
 
-        // Dialog to confirm discard action
-        if (showDiscardDialog) {
-            AlertDialog(
-                onDismissRequest = { showDiscardDialog = false },
-                title = { Text("Discard Image") },
-                text = { Text("Are you sure you want to discard the captured image?") },
-                shape = RoundedCornerShape(8.dp),
-                confirmButton = {
-                    TextButton(onClick = {
-                        capturedBitmap = null
-                        showDiscardDialog = false
-                    }) {
-                        Text("Discard")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDiscardDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
+        DiscardImageDialog(showDiscardDialog, capturedBitmap) {
+            capturedBitmap = null
         }
 
-        // Dialog to confirm leaving the event
-        if (showExitEventDialog) {
-            AlertDialog(
-                onDismissRequest = { showExitEventDialog = false },
-                title = { Text("Leave Event") },
-                text = { Text("Are you sure you want to leave the event? Any unsaved progress will be lost.") },
-                shape = RoundedCornerShape(8.dp),
-                confirmButton = {
-                    TextButton(onClick = {
-                        showExitEventDialog = false
-                        navController.popBackStack()
-                    }) {
-                        Text("Leave")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showExitEventDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
+        ExitEventDialog(showExitEventDialog, navController) {
+            showExitEventDialog.value = false
         }
 
-        // Filter Selection Buttons
-        Column(
+        FilterSelectionButtons(selectedFilter)
+
+        ImageCaptureUI(previewView) { bitmap ->
+            capturedBitmap = bitmap
+        }
+
+        CameraOverlay() // Add overlay here
+
+        // FloatingActionButton to launch the gallery
+        FloatingActionButton(
+            onClick = { launcher.launch("image/* video/*") },
+            containerColor = Color(0xFF0D6EFD),
+            contentColor = Color.White,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp)
+                .align(Alignment.BottomEnd)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Button(onClick = { selectedFilter = FilterType.Sepia }) {
-                    Text("Sepia")
-                }
-                Button(onClick = { selectedFilter = FilterType.Grayscale }) {
-                    Text("Grayscale")
-                }
-                Button(onClick = { selectedFilter = FilterType.None }) {
-                    Text("None")
-                }
+            Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = "Select from Gallery")
+        }
+
+        capturedBitmap?.let { bitmap ->
+            ImagePreview(bitmap, isLoading, context, eventCode, viewModel) {
+                capturedBitmap = null
             }
         }
+    }
+}
 
-        // Image Capture UI
-        Column(
+fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        BitmapFactory.decodeStream(inputStream)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+@Composable
+fun SetupCamera(
+    cameraProviderFuture: ListenableFuture<ProcessCameraProvider>,
+    previewView: PreviewView,
+    selectedFilter: MutableState<FilterType>,
+    gpuImage: GPUImage
+) {
+    val context = LocalContext.current
+
+    LaunchedEffect(selectedFilter.value) {
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                    .build()
+                val camera = cameraProvider.bindToLifecycle(context as LifecycleOwner, cameraSelector, preview)
+
+                // Apply the selected filter
+                applyPreviewFilter(gpuImage, selectedFilter.value)
+
+                // Set the correct scale type to avoid zoom issues
+                previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+
+                // Optionally set zoom ratio to the default value
+                camera.cameraControl.setZoomRatio(1.0f)
+
+            } catch (e: Exception) {
+                Log.e("Camera", "Camera initialization failed: ${e.message}")
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+}
+
+@Composable
+fun CameraOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent),
+        contentAlignment = Alignment.Center
+    ) {
+        // Add any overlay components like grid lines or borders here
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Draw grid lines as an example
+            drawLine(
+                color = Color.White.copy(alpha = 0.5f),
+                start = Offset(x = 0f, y = size.height / 3),
+                end = Offset(x = size.width, y = size.height / 3),
+                strokeWidth = 1.dp.toPx()
+            )
+            drawLine(
+                color = Color.White.copy(alpha = 0.5f),
+                start = Offset(x = 0f, y = 2 * size.height / 3),
+                end = Offset(x = size.width, y = 2 * size.height / 3),
+                strokeWidth = 1.dp.toPx()
+            )
+            drawLine(
+                color = Color.White.copy(alpha = 0.5f),
+                start = Offset(x = size.width / 3, y = 0f),
+                end = Offset(x = size.width / 3, y = size.height),
+                strokeWidth = 1.dp.toPx()
+            )
+            drawLine(
+                color = Color.White.copy(alpha = 0.5f),
+                start = Offset(x = 2 * size.width / 3, y = 0f),
+                end = Offset(x = 2 * size.width / 3, y = size.height),
+                strokeWidth = 1.dp.toPx()
+            )
+        }
+    }
+}
+
+@Composable
+fun DiscardImageDialog(showDiscardDialogState: MutableState<Boolean>, capturedBitmap: Bitmap?, onDiscard: () -> Unit) {
+    if (showDiscardDialogState.value) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialogState.value = false },
+            title = { Text("Discard Image") },
+            text = { Text("Are you sure you want to discard the captured image?") },
+            shape = RoundedCornerShape(8.dp),
+            confirmButton = {
+                TextButton(onClick = {
+                    onDiscard()
+                    showDiscardDialogState.value = false
+                }) {
+                    Text("Discard")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialogState.value = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ExitEventDialog(showExitEventDialogState: MutableState<Boolean>, navController: NavHostController, onDismiss: () -> Unit) {
+    if (showExitEventDialogState.value) {
+        AlertDialog(
+            onDismissRequest = { showExitEventDialogState.value = false },
+            title = { Text("Leave Event") },
+            text = { Text("Are you sure you want to leave the event? Any unsaved progress will be lost.") },
+            shape = RoundedCornerShape(8.dp),
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitEventDialogState.value = false
+                    navController.popBackStack()
+                }) {
+                    Text("Leave")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitEventDialogState.value = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun FilterSelectionButtons(selectedFilter: MutableState<FilterType>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(onClick = { selectedFilter.value = FilterType.Sepia }) {
+                Text("Sepia")
+            }
+            Button(onClick = { selectedFilter.value = FilterType.Grayscale }) {
+                Text("Grayscale")
+            }
+            Button(onClick = { selectedFilter.value = FilterType.None }) {
+                Text("None")
+            }
+        }
+    }
+}
+
+@Composable
+fun ImageCaptureUI(previewView: PreviewView, onCapture: (Bitmap) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        // Capture Button
+        FloatingActionButton(
+            onClick = {
+                captureImage(previewView) { bitmap -> onCapture(bitmap) }
+            },
+            modifier = Modifier
+                .size(72.dp) // Adjust size of the FAB
+                .align(Alignment.CenterHorizontally), // Center the FAB horizontally
+            containerColor = Color.White, // White background color for the FAB
+            contentColor = Color(0xFF0D6EFD) // Primary blue color for the icon
+        ) {
+            Icon(
+                Icons.Filled.CameraAlt, // The camera icon
+                contentDescription = "Capture Photo",
+                tint = Color(0xFF0D6EFD) // Ensure the icon color is primary blue
+            )
+        }
+    }
+}
+
+@Composable
+fun ImagePreview(
+    bitmap: Bitmap,
+    isLoading: Boolean,
+    context: Context,
+    eventCode: String?,
+    viewModel: EventViewModel,
+    onReset: () -> Unit
+) {
+    var mutableLoading by remember { mutableStateOf(isLoading) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.7f)) // Use `colorScheme` for Material3
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = "Captured Image",
             modifier = Modifier
                 .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp))
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.Bottom
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Capture Button
-            FloatingActionButton(
+            // Save Button
+            OutlinedButton(
                 onClick = {
-                    captureImage(previewView) { bitmap -> capturedBitmap = bitmap }
+                    mutableLoading = true
+                    saveBitmapToGallery(context, bitmap) {
+                        mutableLoading = false
+                        onReset() // Reset to camera screen
+                    }
                 },
-                modifier = Modifier
-                    .size(72.dp) // Adjust size of the FAB
-                    .align(Alignment.CenterHorizontally), // Center the FAB horizontally
-                containerColor = Color.White, // White background color for the FAB
-                contentColor = Color(0xFF0D6EFD) // Primary blue color for the icon
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFF0D6EFD)
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(
-                    Icons.Filled.CameraAlt, // The camera icon
-                    contentDescription = "Capture Photo",
-                    tint = Color(0xFF0D6EFD) // Ensure the icon color is primary blue
-                )
+                if (mutableLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color(0xFF0D6EFD)
+                    )
+                } else {
+                    Text("Save")
+                }
             }
-        }
 
-        // Image Preview and Save/Upload Buttons
-        capturedBitmap?.let { bitmap ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.7f)) // Use `colorScheme` for Material3
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
+            // Upload Button
+            Button(
+                onClick = {
+                    mutableLoading = true
+                    val eventId = eventCode ?: return@Button
+                    viewModel.uploadCapturedImages(
+                        eventId,
+                        listOf(bitmap),
+                        onSuccess = {
+                            mutableLoading = false
+                            onReset() // Reset to camera screen
+                        },
+                        onError = {
+                            mutableLoading = false
+                            Toast.makeText(context, "Upload failed", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF0D6EFD),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Captured Image",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp))
-                )
-
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Save Button
-                    OutlinedButton(
-                        onClick = {
-                            isLoading = true
-                            saveBitmapToGallery(context, bitmap) {
-                                isLoading = false
-                                capturedBitmap = null // Reset to camera screen
-                            }
-                        },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF0D6EFD)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color(0xFF0D6EFD)
-                            )
-                        } else {
-                            Text("Save")
-                        }
-                    }
-
-                    // Upload Button
-                    Button(
-                        onClick = {
-                            isLoading = true
-                            val eventId = eventCode ?: return@Button
-                            viewModel.uploadCapturedImages(
-                                eventId,
-                                listOf(bitmap),
-                                onSuccess = {
-                                    isLoading = false
-                                    capturedBitmap = null // Reset to camera screen
-                                },
-                                onError = {
-                                    isLoading = false
-                                    Toast.makeText(context, "Upload failed", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0D6EFD),
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White
-                            )
-                        } else {
-                            Text("Upload")
-                        }
-                    }
+                if (mutableLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Text("Upload")
                 }
             }
         }
@@ -396,6 +524,3 @@ fun EventRoomTab(eventCode: String?) {
 enum class FilterType {
     Sepia, Grayscale, None
 }
-
-
-

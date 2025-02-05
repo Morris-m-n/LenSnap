@@ -113,61 +113,6 @@ fun JoinEventScreen(navController: NavHostController, onJoinSuccess: (String) ->
     )
 }
 
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//fun JoinEventScreen(navController: NavHostController, onJoinSuccess: (String) -> Unit) {
-//    val context = LocalContext.current
-//    var selectedTab by remember { mutableStateOf(0) }
-//    var errorMessage by remember { mutableStateOf("") }
-//
-//    // Permission launcher for camera access
-//    val permissionLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.RequestPermission()
-//    ) { isGranted ->
-//        if (!isGranted) {
-//            Toast.makeText(context, "Camera permission is required to scan QR codes", Toast.LENGTH_LONG).show()
-//        }
-//    }
-//
-//    // Request camera permission on start
-//    LaunchedEffect(Unit) {
-//        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-//            permissionLauncher.launch(Manifest.permission.CAMERA)
-//        }
-//    }
-//
-//    Scaffold(
-//        topBar = { JoinEventTopBar() },
-//        content = { paddingValues ->
-//            JoinEventContent(
-//                navController = navController,
-//                selectedTab = selectedTab,
-//                onTabSelected = { selectedTab = it },
-//                onScanResult = { qrCodeContents: String ->
-//                    verifyQrCode(qrCodeContents, onSuccess = { eventDocument ->
-//                        val eventId = eventDocument.id
-//                        onJoinSuccess(eventId)
-//                        navController.navigate("photoCapture/$eventId")
-//                    }, onError = { error ->
-//                        errorMessage = error
-//                    })
-//                },
-//                onPairingCodeEntered = { pairingCode: String ->
-//                    verifyPairingCode(pairingCode, onSuccess = { eventDocument ->
-//                        val eventId = eventDocument.id
-//                        onJoinSuccess(eventId)
-//                        navController.navigate("photoCapture/$eventId")
-//                    }, onError = { error ->
-//                        errorMessage = error
-//                    })
-//                },
-//                errorMessage = errorMessage,
-//                paddingValues = paddingValues
-//            )
-//        }
-//    )
-//}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JoinEventTopBar() {
@@ -276,7 +221,7 @@ fun CenteredFABs(selectedTab: Int, onTabSelected: (Int) -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Password,
                         contentDescription = "Use Pairing Code",
-                        tint = if (selectedTab == 1) Color(0xFF0d6efd) else Color.Black
+                        tint = if (selectedTab == 1) Color(0xFF0D6EFD) else Color.Black
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))

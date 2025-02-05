@@ -397,7 +397,11 @@ fun AppNavHost(
         }
 
         composable("search"){
-            SearchScreen(viewModel = searchViewModel)
+            SearchScreen(
+                viewModel = searchViewModel,
+                navController = navController,
+                userViewModel = userViewModel
+                )
         }
 
         composable("callScreen/{receiverId}/{callType}") { backStackEntry ->

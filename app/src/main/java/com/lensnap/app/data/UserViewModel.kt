@@ -100,17 +100,6 @@ class UserViewModel(private val context: Context) : ViewModel() {
         sharedPreferences.edit().putString("USER_ID", userId).apply()
         Log.d("UserViewModel", "User ID stored: $userId")
     }
-//    fun fetchCurrentUser(userId: String) {
-//        Log.d("UserViewModel", "Fetching current user with ID: $userId")
-//        db.collection("users").document(userId).get()
-//            .addOnSuccessListener { document ->
-//                _currentUser.value = document.toObject(UserRegistration::class.java)
-//                Log.d("UserViewModel", "User data fetched successfully")
-//            }
-//            .addOnFailureListener { exception ->
-//                Log.e("UserViewModel", "Error fetching user data", exception)
-//            }
-//    }
 
     fun fetchCurrentUser(userId: String) {
         Log.d("UserViewModel", "Fetching current user with ID: $userId")

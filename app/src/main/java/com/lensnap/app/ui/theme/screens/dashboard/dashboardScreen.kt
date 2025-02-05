@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Comment
@@ -84,6 +85,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.DialogProperties
@@ -356,7 +358,10 @@ fun DashboardScreen(
                                     fontWeight = FontWeight.Thin,
                                     modifier = Modifier.padding(16.dp)
                                 )
-                                DailyUpdatesSection(updates = dailyUpdates)
+                                DailyUpdatesSection(
+                                    updates = dailyUpdates,
+                                    navController = navController
+                                )
                             }
 
                             // 2. Build a combined list with interleaved sections
@@ -464,7 +469,8 @@ fun DashboardScreen(
                                             isLikedState = isLikedState,
                                             totalLikes = totalLikes.value,
                                             userViewModel = userViewModel,
-                                            currentUserId = userId // Adjusted parameter name to currentUserId
+                                            currentUserId = userId, // Adjusted parameter name to currentUserId
+                                            navController = navController
                                         )
                                     }
 
@@ -566,7 +572,8 @@ fun ObserveLazyListStateForPagination(
 @Composable
 fun DailyUpdatesSection(
     updates: List<DailyUpdate>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
     var selectedUpdateIndex by remember { mutableStateOf(-1) }
 
@@ -575,7 +582,8 @@ fun DailyUpdatesSection(
         FullScreenImageModal(
             updates = updates,
             selectedIndex = selectedUpdateIndex,
-            onDismiss = { selectedUpdateIndex = -1 } // Close full-screen view
+            onDismiss = { selectedUpdateIndex = -1 }, // Close full-screen view
+            navController = navController
         )
     }
 
@@ -597,7 +605,8 @@ fun DailyUpdatesSection(
                 DailyUpdatesCard(
                     update = update,
                     modifier = Modifier.width(150.dp),
-                    onClick = { selectedUpdateIndex = index } // Open full-screen view
+                    onClick = { selectedUpdateIndex = index }, // Open full-screen view
+                    navController = navController
                 )
             }
         }
@@ -608,7 +617,8 @@ fun DailyUpdatesSection(
 fun DailyUpdatesCard(
     update: DailyUpdate,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    navController: NavController // Add NavController as a parameter
 ) {
     if (update.uri.isNotEmpty()) {
         Card(
@@ -649,10 +659,12 @@ fun DailyUpdatesCard(
                         )
                         .padding(8.dp)
                 ) {
-                    Text(
-                        text = update.username,
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    ClickableText(
+                        text = AnnotatedString(update.username),
+                        onClick = {
+                            navController.navigate("profile/${update.userId}")
+                        },
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                         modifier = Modifier.align(Alignment.BottomStart)
                     )
                 }
@@ -661,11 +673,69 @@ fun DailyUpdatesCard(
     }
 }
 
+//@Composable
+//fun DailyUpdatesCard(
+//    update: DailyUpdate,
+//    modifier: Modifier = Modifier,
+//    onClick: () -> Unit
+//) {
+//    if (update.uri.isNotEmpty()) {
+//        Card(
+//            shape = RoundedCornerShape(12.dp),
+//            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+//            modifier = modifier
+//                .width(150.dp)
+//                .padding(8.dp)
+//                .height(200.dp)
+//                .clickable { onClick() }, // Trigger full-screen view on click
+//            colors = CardDefaults.cardColors(containerColor = Color.White)
+//        ) {
+//            Box(
+//                modifier = Modifier.fillMaxSize()
+//            ) {
+//                Image(
+//                    painter = rememberImagePainter(
+//                        data = update.uri,
+//                        builder = {
+//                            diskCachePolicy(CachePolicy.ENABLED)
+//                            networkCachePolicy(CachePolicy.ENABLED)
+//                        }
+//                    ),
+//                    contentDescription = "Daily Update Media",
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .clip(RoundedCornerShape(12.dp)),
+//                    contentScale = ContentScale.Crop
+//                )
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .background(
+//                            brush = Brush.verticalGradient(
+//                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
+//                                startY = 300f
+//                            )
+//                        )
+//                        .padding(8.dp)
+//                ) {
+//                    Text(
+//                        text = update.username,
+//                        color = Color.White,
+//                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+//                        modifier = Modifier.align(Alignment.BottomStart)
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
+
 @Composable
 fun FullScreenImageModal(
     updates: List<DailyUpdate>,
     selectedIndex: Int,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    navController: NavController
 ) {
     Dialog(
         onDismissRequest = { onDismiss() }, // Close when tapped outside
@@ -676,16 +746,140 @@ fun FullScreenImageModal(
         FullScreenImageView(
             updates = updates,
             selectedIndex = selectedIndex,
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
+            navController = navController
         )
     }
 }
+
+//@Composable
+//fun FullScreenImageView(
+//    updates: List<DailyUpdate>,
+//    selectedIndex: Int,
+//    onDismiss: () -> Unit
+//) {
+//    var currentIndex by remember { mutableStateOf(selectedIndex) }
+//
+//    val update = updates[currentIndex]
+//
+//    Box(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(Color.Black)
+//            .pointerInput(Unit) {
+//                detectTapGestures(
+//                    onTap = { offset ->
+//                        val screenWidth = size.width
+//                        if (offset.x < screenWidth / 2) {
+//                            // Left tap
+//                            if (currentIndex > 0) {
+//                                currentIndex--
+//                            }
+//                        } else {
+//                            // Right tap
+//                            if (currentIndex < updates.size - 1) {
+//                                currentIndex++
+//                            }
+//                        }
+//                    }
+//                )
+//            }
+//    ) {
+//        // Full-Screen Image with Padding and Rounded Edges
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(16.dp) // Add padding around the image
+//                .clip(RoundedCornerShape(16.dp)) // Rounded edges
+//                .background(Color.Black)
+//        ) {
+//            Image(
+//                painter = rememberImagePainter(
+//                    data = update.uri,
+//                    builder = {
+//                        placeholder(R.drawable.placeholder) // Replace with your placeholder drawable
+//                        error(R.drawable.error) // Replace with your error drawable
+//                        crossfade(true) // Smooth transition effect
+//                    }
+//                ),
+//                contentDescription = "Full-Screen Image",
+//                modifier = Modifier.fillMaxSize(),
+//                contentScale = ContentScale.Crop
+//            )
+//        }
+//
+//        // Profile Image and Username (Top Left)
+//        Row(
+//            verticalAlignment = Alignment.CenterVertically,
+//            modifier = Modifier
+//                .align(Alignment.TopStart)
+//                .padding(16.dp)
+//        ) {
+//            // Profile Image with Rounded Shape
+//            Image(
+//                painter = rememberImagePainter(
+//                    data = update.profilePhotoUrl,
+//                    builder = {
+//                        placeholder(R.drawable.placeholder) // Replace with your placeholder drawable
+//                        error(R.drawable.error) // Replace with your error drawable
+//                        crossfade(true)
+//                    }
+//                ),
+//                contentDescription = "Profile Image",
+//                modifier = Modifier
+//                    .size(40.dp)
+//                    .clip(RoundedCornerShape(16.dp)) // Rounded edges
+//                    .background(Color.Gray)
+//            )
+//            Spacer(modifier = Modifier.width(8.dp))
+//            // Username
+//            Text(
+//                text = update.username,
+//                color = Color.White,
+//                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+//                modifier = Modifier.shadow(8.dp) // Subtle shadow for better contrast
+//            )
+//        }
+//
+//        // Caption at the Bottom with Shadow
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .align(Alignment.BottomCenter)
+//                .padding(16.dp)
+//        ) {
+//            Text(
+//                text = update.caption,
+//                color = Color.White,
+//                style = MaterialTheme.typography.bodySmall,
+//                modifier = Modifier
+//                    .align(Alignment.BottomStart)
+//                    .shadow(8.dp) // Add shadow for text contrast
+//            )
+//        }
+//
+//        // Close Button (Top Right)
+//        IconButton(
+//            onClick = onDismiss,
+//            modifier = Modifier
+//                .align(Alignment.TopEnd)
+//                .padding(16.dp)
+//        ) {
+//            Icon(
+//                imageVector = Icons.Default.Close,
+//                contentDescription = "Close",
+//                tint = Color.White
+//            )
+//        }
+//    }
+//}
 
 @Composable
 fun FullScreenImageView(
     updates: List<DailyUpdate>,
     selectedIndex: Int,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    navController: NavController // Add NavController as a parameter
 ) {
     var currentIndex by remember { mutableStateOf(selectedIndex) }
 
@@ -762,10 +956,12 @@ fun FullScreenImageView(
             )
             Spacer(modifier = Modifier.width(8.dp))
             // Username
-            Text(
-                text = update.username,
-                color = Color.White,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            ClickableText(
+                text = AnnotatedString(update.username),
+                onClick = {
+                    navController.navigate("profile/${update.userId}")
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                 modifier = Modifier.shadow(8.dp) // Subtle shadow for better contrast
             )
         }
@@ -802,7 +998,6 @@ fun FullScreenImageView(
         }
     }
 }
-
 
 // Converts image urls to data so they can be used by ImageCard in assigning the proper aspect ratio
 fun convertToImageData(urls: List<String>): SnapshotStateList<ImageData> {

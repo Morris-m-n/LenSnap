@@ -20,10 +20,11 @@ class SearchRepository {
                 .await()
 
             for (document in snapshot.documents) {
+                val userId = document.id
                 val username = document.getString("username") ?: ""
                 val email = document.getString("email") ?: ""
                 val profilePhotoUrl = document.getString("profilePhotoUrl") ?: ""
-                results.add(UserSearchResult(username, email, profilePhotoUrl))
+                results.add(UserSearchResult(userId, username, email, profilePhotoUrl))
             }
             Log.d("SearchRepository", "User search results: ${results.size} found")
             results
@@ -32,6 +33,30 @@ class SearchRepository {
             emptyList()
         }
     }
+
+//    suspend fun searchUsers(query: String): List<UserSearchResult> {
+//        val results = mutableListOf<UserSearchResult>()
+//
+//        return try {
+//            val snapshot = db.collection("users")
+//                .whereGreaterThanOrEqualTo("username", query)
+//                .whereLessThanOrEqualTo("username", query + '\uf8ff')
+//                .get()
+//                .await()
+//
+//            for (document in snapshot.documents) {
+//                val username = document.getString("username") ?: ""
+//                val email = document.getString("email") ?: ""
+//                val profilePhotoUrl = document.getString("profilePhotoUrl") ?: ""
+//                results.add(UserSearchResult(username, email, profilePhotoUrl))
+//            }
+//            Log.d("SearchRepository", "User search results: ${results.size} found")
+//            results
+//        } catch (e: Exception) {
+//            Log.e("SearchRepository", "Error fetching user search results", e)
+//            emptyList()
+//        }
+//    }
 
     suspend fun searchEvents(query: String): List<EventSearchResult> {
         val results = mutableListOf<EventSearchResult>()

@@ -28,9 +28,11 @@ import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import com.google.firebase.firestore.DocumentSnapshot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 class EventViewModel(private val context: Context) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
@@ -101,6 +103,14 @@ class EventViewModel(private val context: Context) : ViewModel() {
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
 
+    private val _photos = MutableLiveData<List<String>>(emptyList())
+    val photos: LiveData<List<String>> = _photos
+
+    private val _qrBitmap = MutableLiveData<Bitmap?>()
+    val qrBitmap: LiveData<Bitmap?> = _qrBitmap
+
+    private val _pairingCode = MutableLiveData<String?>()
+    val pairingCode: LiveData<String?> = _pairingCode
 
     private fun generatePairingCode(): String {
         return UUID.randomUUID().toString().substring(0, 8)
@@ -364,6 +374,71 @@ class EventViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    fun fetchEventPairingCode(eventCode: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("events").document(eventCode).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val pairingCode = document.getString("pairingCode")
+                    _pairingCode.value = pairingCode
+                } else {
+                    _pairingCode.value = null
+                }
+            }
+            .addOnFailureListener {
+                _pairingCode.value = null
+            }
+    }
+
+    fun fetchEventPhotos(eventCode: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("events").document(eventCode).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val photoUrls = document.get("photoUrls") as? List<String> ?: emptyList()
+                    _photos.value = photoUrls // Update LiveData or State
+                } else {
+                    _photos.value = emptyList()
+                }
+            }
+            .addOnFailureListener {
+                _photos.value = emptyList()
+            }
+    }
+
+    fun fetchEventQRCode(eventCode: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("events").document(eventCode).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val qrCodeUrl = document.getString("qrCodeUrl")
+                    if (!qrCodeUrl.isNullOrEmpty()) {
+                        loadBitmapFromUrl(qrCodeUrl)
+                    } else {
+                        _qrBitmap.value = null
+                    }
+                } else {
+                    _qrBitmap.value = null
+                }
+            }
+            .addOnFailureListener {
+                _qrBitmap.value = null
+            }
+    }
+
+    private fun loadBitmapFromUrl(url: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
+                withContext(Dispatchers.Main) {
+                    _qrBitmap.value = bitmap
+                }
+            } catch (e: Exception) {
+                _qrBitmap.value = null
+            }
+        }
+    }
+
     // Update event details
     fun updateEvent(
         event: Event,
@@ -514,7 +589,8 @@ class EventViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-fun hasUserLiked(eventId: String, userId: String, onSuccess: (Boolean) -> Unit, onError: (String) -> Unit) {
+
+    fun hasUserLiked(eventId: String, userId: String, onSuccess: (Boolean) -> Unit, onError: (String) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     val likeRef = db.collection("events").document(eventId).collection("likes").document(userId)
 

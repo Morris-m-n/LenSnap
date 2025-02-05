@@ -66,7 +66,10 @@ import com.lensnap.app.data.UserViewModel
 import com.lensnap.app.models.PostComments
 import kotlinx.coroutines.launch
 import android.widget.FrameLayout
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.NavController
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.SimpleExoPlayer
@@ -82,7 +85,8 @@ fun PostCard(
     isLikedState: MutableState<Boolean>,
     totalLikes: Int,
     userViewModel: UserViewModel, // Pass the UserViewModel to the composable
-    currentUserId: String // Pass the currentUserId to the composable
+    currentUserId: String, // Pass the currentUserId to the composable
+    navController: NavController // Pass the NavController to the composable
 ) {
     val greyColor = Color.Gray
     val redColor = Color.Red
@@ -185,10 +189,12 @@ fun PostCard(
                     }
                 }
 
-                Text(
-                    text = post.username,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
+                ClickableText(
+                    text = AnnotatedString.Builder(post.username).toAnnotatedString(),
+                    onClick = {
+                        navController.navigate("profile/${post.userId}")
+                    },
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, color = Color.White),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
@@ -260,6 +266,196 @@ fun PostCard(
         }
     }
 }
+
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun PostCard(
+//    post: Post,
+//    isLiked: Boolean,
+//    onLikeClick: () -> Unit,
+//    onUnlikeClick: () -> Unit,
+//    onShareClick: () -> Unit,
+//    isLikedState: MutableState<Boolean>,
+//    totalLikes: Int,
+//    userViewModel: UserViewModel, // Pass the UserViewModel to the composable
+//    currentUserId: String // Pass the currentUserId to the composable
+//) {
+//    val greyColor = Color.Gray
+//    val redColor = Color.Red
+//    val context = LocalContext.current
+//
+//    var mediaBitmap by remember { mutableStateOf<Bitmap?>(null) }
+//    var dominantColor by remember { mutableStateOf(Color.Transparent) }
+//    var imageWidth by remember { mutableStateOf(1) }
+//    var imageHeight by remember { mutableStateOf(1) }
+//
+//    var commentsCount by remember { mutableStateOf(0) }
+//
+//    val coroutineScope = rememberCoroutineScope()
+//
+//    LaunchedEffect(post.id) {
+//        coroutineScope.launch {
+//            commentsCount = userViewModel.getCommentsCount(post.userId, post.id)
+//        }
+//    }
+//
+//    LaunchedEffect(post.mediaUrl) {
+//        mediaBitmap = getBitmapFromUrl(post.mediaUrl, context)
+//        mediaBitmap?.let { bitmap ->
+//            imageWidth = bitmap.width
+//            imageHeight = bitmap.height
+//
+//            Palette.from(bitmap).generate { palette ->
+//                palette?.dominantSwatch?.rgb?.let { colorValue ->
+//                    dominantColor = Color(colorValue)
+//                }
+//            }
+//        }
+//    }
+//
+//    val aspectRatio = if (imageHeight != 0) imageWidth.toFloat() / imageHeight else 1f
+//    val maxHeight = 400.dp
+//    val roundedCornerShape = RoundedCornerShape(16.dp)
+//
+//    var showBottomSheet by remember { mutableStateOf(false) }
+//    val commentText = remember { mutableStateOf("") }
+//
+//    CommentBottomSheet(
+//        showBottomSheet = showBottomSheet,
+//        onDismissRequest = { showBottomSheet = false },
+//        commentText = commentText,
+//        onPostComment = {
+//            if (commentText.value.isNotBlank()) {
+//                coroutineScope.launch {
+//                    Log.d("FirestoreDebug", "Posting comment: ${commentText.value}")
+//                    userViewModel.addPostComment(post.userId, post.id, commentText.value) {
+//                        // Hide the bottom sheet after the comment is posted
+//                        showBottomSheet = false
+//                        // Clear the comment text
+//                        commentText.value = ""
+//                        // Update the comments count
+//                        coroutineScope.launch {
+//                            commentsCount = userViewModel.getCommentsCount(post.userId, post.id)
+//                        }
+//                    }
+//                }
+//            } else {
+//                Log.e("FirestoreDebug", "Comment text is blank")
+//            }
+//        },
+//        userId = post.userId, // Use post.userId as postOwnerId
+//        postId = post.id,
+//        userViewModel = userViewModel
+//    )
+//
+//    Card(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(16.dp)
+//            .clip(roundedCornerShape),
+//        shape = roundedCornerShape,
+//        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+//    ) {
+//        Column(modifier = Modifier.background(Color.Transparent)) {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .clip(roundedCornerShape)
+//                    .background(dominantColor)
+//                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+//            ) {
+//                if (post.mediaType == "video") {
+//                    VideoPlayer(post.mediaUrl)
+//                } else {
+//                    mediaBitmap?.let { bitmap ->
+//                        Image(
+//                            bitmap = bitmap.asImageBitmap(),
+//                            contentDescription = "Post Media",
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .heightIn(max = maxHeight)
+//                                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = true)
+//                                .clip(roundedCornerShape),
+//                            contentScale = ContentScale.Crop
+//                        )
+//                    }
+//                }
+//
+//                Text(
+//                    text = post.username,
+//                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+//                    color = Color.White,
+//                    modifier = Modifier
+//                        .align(Alignment.BottomStart)
+//                        .padding(8.dp)
+//                )
+//            }
+//
+//            Row(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .background(Color.Transparent)
+//                    .padding(horizontal = 4.dp, vertical = 2.dp),
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                IconButton(onClick = {
+//                    if (isLikedState.value) {
+//                        onUnlikeClick()
+//                    } else {
+//                        onLikeClick()
+//                    }
+//                    isLikedState.value = !isLikedState.value
+//                }) {
+//                    Icon(
+//                        imageVector = if (isLikedState.value) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+//                        contentDescription = "Like",
+//                        tint = if (isLikedState.value) redColor else greyColor,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                }
+//                Text(
+//                    text = totalLikes.toString(),
+//                    color = greyColor,
+//                    style = MaterialTheme.typography.bodySmall
+//                )
+//
+//                Spacer(modifier = Modifier.width(8.dp))
+//
+//                IconButton(onClick = { showBottomSheet = true }) {
+//                    Icon(
+//                        imageVector = Icons.Default.Comment,
+//                        contentDescription = "Comment",
+//                        tint = greyColor,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                }
+//                Text(
+//                    text = commentsCount.toString(),
+//                    color = greyColor,
+//                    style = MaterialTheme.typography.bodySmall
+//                )
+//
+//                Spacer(modifier = Modifier.width(8.dp))
+//
+//                IconButton(onClick = onShareClick) {
+//                    Icon(
+//                        imageVector = Icons.Outlined.Share,
+//                        contentDescription = "Share",
+//                        tint = greyColor,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                }
+//            }
+//
+//            Text(
+//                text = post.caption,
+//                style = MaterialTheme.typography.bodyLarge,
+//                color = Color.Black,
+//                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+//            )
+//        }
+//    }
+//}
 
 @Composable
 fun VideoPlayer(videoUrl: String) {

@@ -349,87 +349,58 @@ fun UserProfileScreen(
         userPosts = posts
     }
 
-    Column {
-        targetUser.value?.let { currentUser ->
-            UserDetailsSection(
-                user = currentUser,
-                followersCount = followers.value.size,
-                followingCount = following.value.size,
-                userViewModel = userViewModel,
-                targetUserId = userId,
-                navController = navController
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Custom Tab Row without underline
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(45.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TabIconWithTitle(
-                    count = userPosts.size,
-                    title = "Posts",
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 }
-                )
-                TabIconWithTitle(
-                    count = following.value.size,  // You can replace this with the appropriate count
-                    title = "Events",
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 }
+    LazyColumn {
+        item {
+            targetUser.value?.let { currentUser ->
+                UserDetailsSection(
+                    user = currentUser,
+                    followersCount = followers.value.size,
+                    followingCount = following.value.size,
+                    userViewModel = userViewModel,
+                    targetUserId = userId,
+                    navController = navController
                 )
             }
-        }
 
-        // Content based on selected tab
-        when (selectedTabIndex) {
-            0 -> PostsSection(userPosts)
-            1 -> EventsSection(eventViewModel, userId)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Custom Tab Row
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(45.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TabIconWithTitle(
+                        count = userPosts.size,
+                        title = "Posts",
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 }
+                    )
+                    TabIconWithTitle(
+                        count = following.value.size,  // You can replace this with the appropriate count
+                        title = "Events",
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Content based on selected tab
+            when (selectedTabIndex) {
+                0 -> PostsSection(userPosts)
+                1 -> EventsSection(eventViewModel, userId)
+            }
         }
     }
 }
 
-@Composable
-fun TabIconWithTitle(count: Int, title: String, selected: Boolean, onClick: () -> Unit) {
-    val backgroundColor = if (selected) Color(0xFFF0F8FF) else Color.Transparent // Alice Blue for selected, transparent for unselected
-    val textColor = if (selected) Color(0xFF0D6EFD) else Color.Gray
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(backgroundColor)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = count.toString(),
-                color = textColor,
-                style = MaterialTheme.typography.body1, // Smaller font size
-                fontWeight = FontWeight.Thin // Thin font weight
-            )
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = title,
-            color = textColor,
-            style = MaterialTheme.typography.body2 // Smaller font size
-        )
-    }
-}
 //@Composable
 //fun UserProfileScreen(
 //    userViewModel: UserViewModel,
@@ -472,23 +443,30 @@ fun TabIconWithTitle(count: Int, title: String, selected: Boolean, onClick: () -
 //
 //        Spacer(modifier = Modifier.height(16.dp))
 //
-//        // Tab Row with custom tab icons
-//        TabRow(
-//            selectedTabIndex = selectedTabIndex,
-//            modifier = Modifier.padding(horizontal = 16.dp)
+//        // Custom Tab Row
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(horizontal = 16.dp),
+//            contentAlignment = Alignment.Center
 //        ) {
-//            TabIconWithTitle(
-//                count = userPosts.size,
-//                title = "Posts",
-//                selected = selectedTabIndex == 0,
-//                onClick = { selectedTabIndex = 0 }
-//            )
-//            TabIconWithTitle(
-//                count = following.value.size,  // You can replace this with the appropriate count
-//                title = "Events",
-//                selected = selectedTabIndex == 1,
-//                onClick = { selectedTabIndex = 1 }
-//            )
+//            Row(
+//                horizontalArrangement = Arrangement.spacedBy(45.dp),
+//                verticalAlignment = Alignment.CenterVertically,
+//            ) {
+//                TabIconWithTitle(
+//                    count = userPosts.size,
+//                    title = "Posts",
+//                    selected = selectedTabIndex == 0,
+//                    onClick = { selectedTabIndex = 0 }
+//                )
+//                TabIconWithTitle(
+//                    count = following.value.size,  // You can replace this with the appropriate count
+//                    title = "Events",
+//                    selected = selectedTabIndex == 1,
+//                    onClick = { selectedTabIndex = 1 }
+//                )
+//            }
 //        }
 //
 //        // Content based on selected tab
@@ -498,76 +476,188 @@ fun TabIconWithTitle(count: Int, title: String, selected: Boolean, onClick: () -
 //        }
 //    }
 //}
-//
-//@Composable
-//fun TabIconWithTitle(count: Int, title: String, selected: Boolean, onClick: () -> Unit) {
-//    val backgroundColor = if (selected) Color(0xFFF0F8FF) else Color.Transparent // Alice Blue for selected, transparent for unselected
-//    val textColor = if (selected) Color(0xFF0D6EFD) else Color.Gray
-//
-//    Column(
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
-//        modifier = Modifier.clickable(onClick = onClick)
-//    ) {
-//        Box(
-//            modifier = Modifier
-//                .size(48.dp)
-//                .clip(CircleShape)
-//                .background(backgroundColor)
-//                .clickable(onClick = onClick),
-//            contentAlignment = Alignment.Center
-//        ) {
-//            Text(
-//                text = count.toString(),
-//                color = textColor,
-//                style = MaterialTheme.typography.h4, // Bigger font size
-//                fontWeight = FontWeight.Thin // Thin font weight
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(4.dp))
-//        Text(
-//            text = title,
-//            color = textColor,
-//            style = MaterialTheme.typography.h6
-//        )
-//    }
-//}
+
 @Composable
-fun FollowButton(userViewModel: UserViewModel, targetUserId: String) {
-    val currentUser by userViewModel.currentUser.observeAsState()
-    val isFollowing = remember { mutableStateOf(currentUser?.following?.contains(targetUserId) == true) }
+fun TabIconWithTitle(count: Int, title: String, selected: Boolean, onClick: () -> Unit) {
+    val backgroundColor = if (selected) Color(0xFFF0F8FF) else Color.Transparent // Alice Blue for selected, transparent for unselected
+    val textColor = if (selected) Color(0xFF0D6EFD) else Color.Gray
 
-    LaunchedEffect(currentUser) {
-        isFollowing.value = currentUser?.following?.contains(targetUserId) == true
-    }
-
-    Button(
-        onClick = {
-            if (isFollowing.value) {
-                userViewModel.unfollowUser(targetUserId)
-            } else {
-                userViewModel.followUser(targetUserId)
-            }
-        },
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = if (isFollowing.value) Color.White else Color(0xFF0D6EFD),
-            contentColor = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White
-        ),
-        border = if (isFollowing.value) BorderStroke(1.dp, Color(0xFF0D6EFD)) else null,
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier
-            .width(IntrinsicSize.Min)
-            .height(40.dp)
-            .padding(vertical = 4.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(backgroundColor)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = count.toString(),
+                color = textColor,
+                style = MaterialTheme.typography.body2, // Smaller font size
+                fontWeight = FontWeight.Thin // Thin font weight
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = if (isFollowing.value) "Unfollow" else "Follow",
-            color = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White,
-            style = MaterialTheme.typography.body2,
-            fontWeight = FontWeight.Bold
+            text = title,
+            color = textColor,
+            style = MaterialTheme.typography.body2 // Smaller font size
         )
     }
 }
+//@Composable
+//fun FollowButton(userViewModel: UserViewModel, targetUserId: String) {
+//    val currentUser by userViewModel.currentUser.observeAsState()
+//    val isFollowing = remember { mutableStateOf(currentUser?.following?.contains(targetUserId) == true) }
+//
+//    LaunchedEffect(currentUser) {
+//        isFollowing.value = currentUser?.following?.contains(targetUserId) == true
+//    }
+//
+//    Button(
+//        onClick = {
+//            if (isFollowing.value) {
+//                userViewModel.unfollowUser(targetUserId)
+//            } else {
+//                userViewModel.followUser(targetUserId)
+//            }
+//        },
+//        colors = ButtonDefaults.buttonColors(
+//            backgroundColor = if (isFollowing.value) Color.White else Color(0xFF0D6EFD),
+//            contentColor = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White
+//        ),
+//        border = if (isFollowing.value) BorderStroke(1.dp, Color(0xFF0D6EFD)) else null,
+//        shape = RoundedCornerShape(8.dp),
+//        modifier = Modifier
+//            .width(IntrinsicSize.Min)
+//            .height(40.dp)
+//            .padding(vertical = 4.dp)
+//    ) {
+//        Text(
+//            text = if (isFollowing.value) "Unfollow" else "Follow",
+//            color = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White,
+//            style = MaterialTheme.typography.body2,
+//            fontWeight = FontWeight.Bold
+//        )
+//    }
+//}
+
+//@Composable
+//fun UserDetailsSection(
+//    user: UserRegistration,
+//    followersCount: Int,
+//    followingCount: Int,
+//    userViewModel: UserViewModel,
+//    targetUserId: String,
+//    navController: NavController
+//) {
+//    Column(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(16.dp),
+//        verticalArrangement = Arrangement.spacedBy(8.dp)
+//    ) {
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//        ) {
+//            Row {
+//                // Profile Image in a card with rounded edges
+//                Card(
+//                    elevation = 4.dp, // Use Dp for elevation
+//                    modifier = Modifier
+//                        .size(125.dp),
+//                    shape = RoundedCornerShape(12.dp)
+//                ) {
+//                    Box(modifier = Modifier.fillMaxSize()) {
+//                        Image(
+//                            painter = rememberImagePainter(data = user.profilePhotoUrl),
+//                            contentDescription = "Profile Photo",
+//                            modifier = Modifier
+//                                .fillMaxSize()
+//                                .clip(RoundedCornerShape(12.dp)),
+//                            contentScale = ContentScale.Crop
+//                        )
+//                    }
+//                }
+//
+//                // User details (username, followers, and following) in columns
+//                Column(
+//                    verticalArrangement = Arrangement.Center,
+//                    horizontalAlignment = Alignment.Start,
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .padding(start = 16.dp)
+//                ) {
+//                    Text(
+//                        text = user.username,
+//                        fontWeight = FontWeight.Thin,
+//                        fontSize = 20.sp
+//                    )
+//
+//                    Spacer(modifier = Modifier.height(8.dp))
+//
+//                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+//                        Card(
+//                            elevation = 4.dp, // Use Dp for elevation
+//                            modifier = Modifier
+//                                .padding(4.dp)
+//                                .shadow(4.dp, RoundedCornerShape(8.dp))
+//                                .background(Color(0xFFF0F8FF)),
+//                            shape = RoundedCornerShape(8.dp)
+//                        ) {
+//                            Column(
+//                                horizontalAlignment = Alignment.CenterHorizontally,
+//                                modifier = Modifier.padding(8.dp)
+//                            ) {
+//                                Text(text = "Followers")
+//                                Text(
+//                                    text = "$followersCount",
+//                                    style = MaterialTheme.typography.body2, // Corrected text style reference
+//                                    fontWeight = FontWeight.Bold
+//                                )
+//                            }
+//                        }
+//                        Card(
+//                            elevation = 4.dp, // Use Dp for elevation
+//                            modifier = Modifier
+//                                .padding(4.dp)
+//                                .shadow(4.dp, RoundedCornerShape(8.dp))
+//                                .background(Color(0xFFF0F8FF)),
+//                            shape = RoundedCornerShape(8.dp)
+//                        ) {
+//                            Column(
+//                                horizontalAlignment = Alignment.CenterHorizontally,
+//                                modifier = Modifier.padding(8.dp)
+//                            ) {
+//                                Text(text = "Following")
+//                                Text(
+//                                    text = "$followingCount",
+//                                    style = MaterialTheme.typography.body2, // Corrected text style reference
+//                                    fontWeight = FontWeight.Bold
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        // Follow and Unfollow button
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth(),
+//            horizontalArrangement = Arrangement.spacedBy(8.dp)
+//        ) {
+//            FollowButton(userViewModel = userViewModel, targetUserId = targetUserId)
+//        }
+//    }
+//}
 
 @Composable
 fun UserDetailsSection(
@@ -670,11 +760,12 @@ fun UserDetailsSection(
             }
         }
 
-        // Follow and Unfollow button
-        Row(
+        // Center the Follow button vertically and horizontally
+        Box(
             modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .height(40.dp), // Ensure the height matches the button's height
+            contentAlignment = Alignment.Center
         ) {
             FollowButton(userViewModel = userViewModel, targetUserId = targetUserId)
         }
@@ -682,10 +773,45 @@ fun UserDetailsSection(
 }
 
 @Composable
-fun PostsSection(userPosts: List<Post>) {
-    Column(
-        modifier = Modifier.padding(16.dp) // Padding around the entire section
+fun FollowButton(userViewModel: UserViewModel, targetUserId: String) {
+    val currentUser by userViewModel.currentUser.observeAsState()
+    val isFollowing = remember { mutableStateOf(currentUser?.following?.contains(targetUserId) == true) }
+
+    LaunchedEffect(currentUser) {
+        isFollowing.value = currentUser?.following?.contains(targetUserId) == true
+    }
+
+    Button(
+        onClick = {
+            if (isFollowing.value) {
+                userViewModel.unfollowUser(targetUserId)
+            } else {
+                userViewModel.followUser(targetUserId)
+            }
+        },
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = if (isFollowing.value) Color.White else Color(0xFF0D6EFD),
+            contentColor = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White
+        ),
+        border = if (isFollowing.value) BorderStroke(1.dp, Color(0xFF0D6EFD)) else null,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .width(IntrinsicSize.Min)
+            .height(40.dp)
+            .padding(vertical = 4.dp)
     ) {
+        Text(
+            text = if (isFollowing.value) "Unfollow" else "Follow",
+            color = if (isFollowing.value) Color(0xFF0D6EFD) else Color.White,
+            style = MaterialTheme.typography.body2,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+fun PostsSection(userPosts: List<Post>) {
+    Column{
         // Display posts in chunks of two
         userPosts.chunked(2).forEach { rowPosts ->
             Row(
@@ -801,7 +927,7 @@ fun EventCard(event: Event) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(250.dp)
         ) {
             Image(
                 painter = rememberImagePainter(data = event.imageUrl),
