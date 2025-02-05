@@ -348,7 +348,6 @@ fun ProfileHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-//                .height(150.dp)
         ) {
             Row {
                 // Profile Image in a card with rounded edges
@@ -750,64 +749,6 @@ fun FullScreenVideoPager(
         }
     }
 }
-
-//@OptIn(ExperimentalPagerApi::class)
-//@Composable
-//fun FullScreenVideoPager(
-//    mediaUrls: List<String>,
-//    initialPage: Int,
-//    onDismiss: () -> Unit
-//) {
-//    val pagerState = rememberPagerState(initialPage = initialPage)
-//    var currentIndex by remember { mutableStateOf(initialPage) }
-//
-//    Box(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .background(Color.Black)
-//    ) {
-//        VerticalPager(
-//            count = mediaUrls.size,
-//            state = pagerState,
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .pointerInput(Unit) {
-//                    detectVerticalDragGestures { change, dragAmount ->
-//                        if (dragAmount > 0) {
-//                            // Swipe up
-//                            if (currentIndex > 0) {
-//                                currentIndex--
-//                            }
-//                        } else {
-//                            // Swipe down
-//                            if (currentIndex < mediaUrls.size - 1) {
-//                                currentIndex++
-//                            }
-//                        }
-//                        change.consume()
-//                    }
-//                },
-//        ) { page ->
-//            FullScreenVideoPlayer(
-//                mediaUrl = mediaUrls[page],
-//                onDismiss = onDismiss
-//            )
-//        }
-//
-//        // Close button
-//        IconButton(
-//            onClick = onDismiss,
-//            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-//        ) {
-//            Icon(
-//                imageVector = Icons.Default.Close,
-//                contentDescription = "Close",
-//                tint = Color.White,
-//                modifier = Modifier.size(24.dp)
-//            )
-//        }
-//    }
-//}
 
 @Composable
 fun FullScreenVideoPlayer(

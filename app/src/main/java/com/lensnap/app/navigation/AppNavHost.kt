@@ -165,12 +165,18 @@ fun AppNavHost(
                 currentUserId = currentUserId
             )
         }
-//        composable("individual_chat/{chatId}/{receiverId}") { backStackEntry ->
+        //ORIGINAL
+//        composable(
+//            route = "individual_chat/{chatId}/{receiverId}?eventImageUrl={eventImageUrl}",
+//            arguments = listOf(
+//                navArgument("chatId") { type = NavType.StringType },
+//                navArgument("receiverId") { type = NavType.StringType },
+//                navArgument("eventImageUrl") { type = NavType.StringType; nullable = true }
+//            )
+//        ) { backStackEntry ->
 //            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
 //            val receiverId = backStackEntry.arguments?.getString("receiverId") ?: return@composable
-//
-//            // Initialize FirebaseSignaling
-////            val signaling = remember { FirebaseSignaling() } // Ensure proper initialization
+//            val eventImageUrl = backStackEntry.arguments?.getString("eventImageUrl")
 //
 //            IndividualChatScreen(
 //                chatId = chatId,
@@ -178,21 +184,24 @@ fun AppNavHost(
 //                receiverId = receiverId,
 //                imagePickerLauncher = imagePickerLauncher,
 //                selectedImageUri = selectedImageUri,
-//                navController = navController, // Pass the navController variable correctly
-////                signaling = signaling // Pass the signaling object
+//                navController = navController,
+//                eventImageUrl = eventImageUrl
 //            )
 //        }
+
         composable(
-            route = "individual_chat/{chatId}/{receiverId}?eventImageUrl={eventImageUrl}",
+            route = "individual_chat/{chatId}/{receiverId}?event={event}",
             arguments = listOf(
                 navArgument("chatId") { type = NavType.StringType },
                 navArgument("receiverId") { type = NavType.StringType },
-                navArgument("eventImageUrl") { type = NavType.StringType; nullable = true }
+                navArgument("event") { type = NavType.StringType; nullable = true }
             )
         ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
             val receiverId = backStackEntry.arguments?.getString("receiverId") ?: return@composable
-            val eventImageUrl = backStackEntry.arguments?.getString("eventImageUrl")
+            val eventJson = backStackEntry.arguments?.getString("event")
+
+            val event: Event? = eventJson?.let { Gson().fromJson(it, Event::class.java) }
 
             IndividualChatScreen(
                 chatId = chatId,
@@ -201,7 +210,7 @@ fun AppNavHost(
                 imagePickerLauncher = imagePickerLauncher,
                 selectedImageUri = selectedImageUri,
                 navController = navController,
-                eventImageUrl = eventImageUrl
+                event = event // Pass the event object
             )
         }
 
@@ -346,7 +355,8 @@ fun AppNavHost(
             UserProfileScreen(
                 userViewModel = userViewModel,
                 userId = userId,
-                navController = navController
+                navController = navController,
+                eventViewModel = eventViewModel
             )
         }
         composable("editProfile") {

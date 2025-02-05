@@ -2,6 +2,7 @@ package com.lensnap.app.ui.theme.screens.dashboard
 
 import ImageData
 import PrimaryBlue
+import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -91,6 +92,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.size.Size
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
 import java.util.UUID
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -1014,206 +1016,6 @@ fun EventCardWithDetails(
     }
 }
 
-//@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-//@Composable
-//fun EventCardWithDetails(
-//    event: Event,
-//    capturedImages: SnapshotStateList<ImageData>,
-//    onEventClick: (Event) -> Unit,
-//    likeCount: Int,
-//    commentCount: Int,
-//    isLiked: Boolean,
-//    onLikeClick: () -> Unit,
-//    onUnlikeClick: () -> Unit,
-//    onCommentClick: () -> Unit,
-//    eventViewModel: EventViewModel,
-//    currentUserId: String,
-//    currentUsername: String,
-//    navController: NavController,
-//    userViewModel: UserViewModel
-//) {
-//    val lazyListState = rememberLazyListState()
-//    var showCommentDialog by remember { mutableStateOf(false) }
-//    var showShareDialog by remember { mutableStateOf(false) }
-//
-//    Card(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .padding(horizontal = 16.dp)
-//            .clickable { onEventClick(event) },
-//        elevation = CardDefaults.cardElevation(0.dp), // No elevation for frameless look
-//        shape = RoundedCornerShape(12.dp),
-//        colors = CardDefaults.cardColors(containerColor = Color.Transparent) // Transparent card
-//    ) {
-//        Column(
-//            modifier = Modifier
-//                .background(Color.Transparent) // Transparent background
-//        ) {
-//            // Image Section with Elevation and Shadow
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(300.dp)
-//                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp)) // Shadow effect
-//            ) {
-//                val flingBehavior = rememberSnapFlingBehavior(lazyListState)
-//
-//                LazyRow(
-//                    state = lazyListState,
-//                    flingBehavior = flingBehavior,
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .fillMaxSize()
-//                        .background(Color.Transparent) // Transparent images section
-//                ) {
-//                    item {
-//                        ImageCard(imageData = ImageData(url = event.imageUrl, aspectRatio = 1.0f))
-//                    }
-//                    items(capturedImages) { imageData ->
-//                        ImageCard(imageData = imageData)
-//                    }
-//                }
-//
-//                // Indicator Dots
-//                Row(
-//                    modifier = Modifier
-//                        .align(Alignment.BottomCenter)
-//                        .padding(8.dp),
-//                    horizontalArrangement = Arrangement.Center
-//                ) {
-//                    val totalPages = 1 + capturedImages.size
-//                    for (i in 0 until totalPages) {
-//                        Box(
-//                            modifier = Modifier
-//                                .size(if (lazyListState.firstVisibleItemIndex == i) 8.dp else 6.dp)
-//                                .clip(CircleShape)
-//                                .background(if (lazyListState.firstVisibleItemIndex == i) Color.Gray else Color.LightGray)
-//                                .padding(2.dp)
-//                        )
-//                    }
-//                }
-//            }
-//
-//            // Icons Row
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(horizontal = 16.dp, vertical = 8.dp),
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.Start
-//            ) {
-//                IconButton(
-//                    onClick = {
-//                        if (isLiked) {
-//                            onUnlikeClick()
-//                        } else {
-//                            onLikeClick()
-//                        }
-//                    },
-//                    modifier = Modifier.size(20.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-//                        contentDescription = "Like",
-//                        tint = Color.Gray
-//                    )
-//                }
-//                Spacer(modifier = Modifier.width(8.dp))
-//                Text("$likeCount", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-//
-//                Spacer(modifier = Modifier.width(16.dp))
-//
-//                IconButton(
-//                    onClick = { showCommentDialog = true },
-//                    modifier = Modifier.size(20.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Comment,
-//                        contentDescription = "Comment",
-//                        tint = Color.Gray
-//                    )
-//                }
-//                Spacer(modifier = Modifier.width(8.dp))
-//                Text("$commentCount", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-//
-//                Spacer(modifier = Modifier.width(16.dp))
-//
-//                IconButton(
-//                    onClick = { showShareDialog = true },
-//                    modifier = Modifier.size(20.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Share,
-//                        contentDescription = "Share",
-//                        tint = Color.Gray
-//                    )
-//                }
-//            }
-//
-//            // Event Details Section with Smaller Text
-//            Column(
-//                modifier = Modifier
-//                    .padding(horizontal = 16.dp, vertical = 8.dp)
-//                    .background(Color.Transparent) // Transparent details section
-//            ) {
-//                Text(
-//                    text = event.name,
-//                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-//                    color = Color.Black
-//                )
-//                Spacer(modifier = Modifier.height(4.dp))
-//                Text(
-//                    text = event.description,
-//                    style = MaterialTheme.typography.bodySmall, // Smaller text for description
-//                    color = Color.DarkGray
-//                )
-//                Spacer(modifier = Modifier.height(8.dp))
-//                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = "Location", tint = Color.Gray)
-//                    Spacer(modifier = Modifier.width(4.dp))
-//                    Text(
-//                        text = event.location,
-//                        style = MaterialTheme.typography.bodySmall, // Smaller text for location
-//                        color = Color.DarkGray
-//                    )
-//                }
-//                Spacer(modifier = Modifier.height(4.dp))
-//                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    Icon(imageVector = Icons.Default.Event, contentDescription = "Date", tint = Color.Gray)
-//                    Spacer(modifier = Modifier.width(4.dp))
-//                    Text(
-//                        text = event.date,
-//                        style = MaterialTheme.typography.bodySmall, // Smaller text for date
-//                        color = Color.DarkGray
-//                    )
-//                }
-//            }
-//        }
-//    }
-//
-//    if (showCommentDialog) {
-//        CommentDialog(
-//            eventId = event.id,
-//            onDismiss = { showCommentDialog = false },
-//            eventViewModel = eventViewModel,
-//            currentUserId = currentUserId,
-//            currentUsername = currentUsername,
-//            navController = navController,
-//            userViewModel = userViewModel
-//        )
-//    }
-//
-//    if (showShareDialog) {
-//        ShareDialog(
-//            onDismiss = { showShareDialog = false },
-//            currentUserId = currentUserId,
-//            userViewModel = userViewModel,
-//            event = event,
-//            navController = navController
-//        )
-//    }
-//}
-
 @Composable
 fun ImageCard(imageData: ImageData) {
     val painter = rememberImagePainter(data = imageData.url
@@ -1789,7 +1591,7 @@ fun SearchBar(searchQuery: String, onSearchQueryChanged: (String) -> Unit) {
         )
     )
 }
-
+//ORIGINAL
 //@Composable
 //fun UserListItem(
 //    user: UserRegistration,
@@ -1807,16 +1609,22 @@ fun SearchBar(searchQuery: String, onSearchQueryChanged: (String) -> Unit) {
 //            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
 //            .padding(8.dp)
 //            .clickable {
-//                // Log the event image URL before navigating
+//                // Encode the event image URL
+//                val encodedImageUrl = URLEncoder.encode(event.imageUrl, StandardCharsets.UTF_8.toString())
 //                Log.d("UserListItem", "Navigating to chat screen. Event Image URL: ${event.imageUrl}")
+//                Log.d("UserListItem", "Encoded Image URL: $encodedImageUrl")
 //
 //                // Check for existing chat
 //                val existingChat = chats.find { it.receiverId == user.id }
 //                if (existingChat != null) {
-//                    navController.navigate("individual_chat/${existingChat.id}/${user.id}?eventImageUrl=${event.imageUrl}")
+//                    val url = "individual_chat/${existingChat.id}/${user.id}?eventImageUrl=$encodedImageUrl"
+//                    Log.d("UserListItem", "Navigating to: $url")
+//                    navController.navigate(url)
 //                } else {
 //                    val chatId = UUID.randomUUID().toString()
-//                    navController.navigate("individual_chat/$chatId/${user.id}?eventImageUrl=${event.imageUrl}")
+//                    val url = "individual_chat/$chatId/${user.id}?eventImageUrl=$encodedImageUrl"
+//                    Log.d("UserListItem", "Navigating to: $url")
+//                    navController.navigate(url)
 //                }
 //            },
 //        verticalAlignment = Alignment.CenterVertically
@@ -1856,20 +1664,18 @@ fun UserListItem(
             .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
             .padding(8.dp)
             .clickable {
-                // Encode the event image URL
-                val encodedImageUrl = URLEncoder.encode(event.imageUrl, StandardCharsets.UTF_8.toString())
-                Log.d("UserListItem", "Navigating to chat screen. Event Image URL: ${event.imageUrl}")
-                Log.d("UserListItem", "Encoded Image URL: $encodedImageUrl")
+                val eventJson = Uri.encode(Gson().toJson(event))
+                Log.d("UserListItem", "Navigating to chat screen with event: $eventJson")
 
                 // Check for existing chat
                 val existingChat = chats.find { it.receiverId == user.id }
                 if (existingChat != null) {
-                    val url = "individual_chat/${existingChat.id}/${user.id}?eventImageUrl=$encodedImageUrl"
+                    val url = "individual_chat/${existingChat.id}/${user.id}?event=$eventJson"
                     Log.d("UserListItem", "Navigating to: $url")
                     navController.navigate(url)
                 } else {
                     val chatId = UUID.randomUUID().toString()
-                    val url = "individual_chat/$chatId/${user.id}?eventImageUrl=$encodedImageUrl"
+                    val url = "individual_chat/$chatId/${user.id}?event=$eventJson"
                     Log.d("UserListItem", "Navigating to: $url")
                     navController.navigate(url)
                 }

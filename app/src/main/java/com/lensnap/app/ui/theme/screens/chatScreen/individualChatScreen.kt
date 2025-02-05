@@ -79,6 +79,7 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
+import com.google.gson.Gson
 import com.lensnap.app.R
 import com.lensnap.app.models.MessageType
 import java.net.URLDecoder
@@ -94,7 +95,7 @@ fun IndividualChatScreen(
     imagePickerLauncher: ActivityResultLauncher<String>,
     selectedImageUri: Uri?,
     navController: NavController,
-    eventImageUrl: String? // New parameter for event image URL
+    event: Event? // New parameter for event
 ) {
     val messages by userViewModel.getChatMessages(chatId).observeAsState(emptyList())
     var message by remember { mutableStateOf("") }
@@ -104,27 +105,27 @@ fun IndividualChatScreen(
     val isTyping by remember { derivedStateOf { message.isNotEmpty() } }
     var typingStatus by remember { mutableStateOf(false) }
     var mediaUri by remember { mutableStateOf(selectedImageUri) }
-    var mediaUrl by remember { mutableStateOf<String?>(eventImageUrl) }
+    var mediaUrl by remember { mutableStateOf<String?>(event?.imageUrl) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val isEvent = eventImageUrl != null // Flag to determine if it's an event message
+    val isEvent = event != null // Flag to determine if it's an event message
 
-    // Retrieve and decode eventImageUrl from the query parameter
-    val eventImageUrlFromQuery = navController.currentBackStackEntry?.arguments?.getString("eventImageUrl")?.let {
-        URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
+    // Retrieve and decode event JSON from the query parameter
+    val eventFromQuery = navController.currentBackStackEntry?.arguments?.getString("event")?.let {
+        Gson().fromJson(URLDecoder.decode(it, StandardCharsets.UTF_8.toString()), Event::class.java)
     }
 
     // Update mediaUri when selectedImageUri changes
     LaunchedEffect(selectedImageUri) {
         mediaUri = selectedImageUri
-        mediaUrl = selectedImageUri?.toString() ?: eventImageUrlFromQuery
+        mediaUrl = selectedImageUri?.toString() ?: eventFromQuery?.imageUrl
         Log.d("IndividualChatScreen", "Updated mediaUri: $mediaUri, mediaUrl: $mediaUrl")
     }
 
-    // Update mediaUrl when eventImageUrl changes
-    LaunchedEffect(eventImageUrl) {
-        mediaUrl = eventImageUrl
-        Log.d("IndividualChatScreen", "Updated mediaUrl from eventImageUrl: $mediaUrl")
+    // Update mediaUrl when event changes
+    LaunchedEffect(event) {
+        mediaUrl = event?.imageUrl
+        Log.d("IndividualChatScreen", "Updated mediaUrl from event: $mediaUrl")
     }
 
     // Log the mediaUrl
@@ -170,7 +171,12 @@ fun IndividualChatScreen(
                     .fillMaxWidth()
                     .background(Color.Transparent)
             ) {
-                MessageList(messages = messages, currentUser = currentUser, listState = listState)
+                MessageList(
+                    messages = messages,
+                    currentUser = currentUser,
+                    listState = listState,
+                    navController = navController
+                )
             }
 
             Spacer(modifier = Modifier.height(64.dp))  // Adjust height to match the ChatInputField's height
@@ -212,7 +218,7 @@ fun IndividualChatScreen(
                         coroutineScope = coroutineScope,
                         listState = listState,
                         isEvent = isEvent, // Use the flag to determine if it's an event message
-                        eventImageUrl = eventImageUrl // Pass the event image URL
+                        event = event // Pass the event object
                     )
                     message = ""
                     mediaUri = null
@@ -229,147 +235,6 @@ fun IndividualChatScreen(
         }
     }
 }
-
-//@Composable
-//fun IndividualChatScreen(
-//    chatId: String,
-//    userViewModel: UserViewModel,
-//    receiverId: String,
-//    imagePickerLauncher: ActivityResultLauncher<String>,
-//    selectedImageUri: Uri?,
-//    navController: NavController,
-//    eventImageUrl: String?
-//) {
-//    val messages by userViewModel.getChatMessages(chatId).observeAsState(emptyList())
-//    var message by remember { mutableStateOf("") }
-//    var receiverUser by remember { mutableStateOf<UserRegistration?>(null) }
-//    val currentUser = userViewModel.getCurrentUser()
-//    val listState = rememberLazyListState()
-//    val isTyping by remember { derivedStateOf { message.isNotEmpty() } }
-//    var typingStatus by remember { mutableStateOf(false) }
-//    var mediaUri by remember { mutableStateOf(selectedImageUri) }
-//    var mediaUrl by remember { mutableStateOf(eventImageUrl) }
-//    val context = LocalContext.current
-//    val coroutineScope = rememberCoroutineScope()
-//
-//    // Retrieve and decode eventImageUrl from the query parameter
-//    val eventImageUrlFromQuery = navController.currentBackStackEntry?.arguments?.getString("eventImageUrl")?.let {
-//        URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
-//    }
-//
-//    // Update mediaUri when selectedImageUri changes
-//    LaunchedEffect(selectedImageUri) {
-//        mediaUri = selectedImageUri
-//        mediaUrl = selectedImageUri?.toString() ?: eventImageUrlFromQuery
-//        Log.d("IndividualChatScreen", "Updated mediaUri: $mediaUri, mediaUrl: $mediaUrl")
-//    }
-//
-//    // Update mediaUrl when eventImageUrl changes
-//    LaunchedEffect(eventImageUrl) {
-//        mediaUrl = eventImageUrl
-//        Log.d("IndividualChatScreen", "Updated mediaUrl from eventImageUrl: $mediaUrl")
-//    }
-//
-//    // Log the mediaUrl
-//    LaunchedEffect(mediaUrl) {
-//        Log.d("IndividualChatScreen", "Media URL set to: $mediaUrl")
-//    }
-//
-//    // Fetch receiver user data and monitor typing status
-//    LaunchedEffect(receiverId) {
-//        userViewModel.getUserData(receiverId) { user -> receiverUser = user }
-//        userViewModel.getTypingStatusFromRealtimeDatabase(receiverId) { isTyping -> typingStatus = isTyping }
-//    }
-//
-//    // Scroll to the latest message
-//    LaunchedEffect(messages.size) {
-//        if (messages.isNotEmpty()) {
-//            listState.scrollToItem(messages.size - 1)
-//        }
-//    }
-//
-//    // Mark messages as seen
-//    LaunchedEffect(messages) {
-//        val messagesToMarkSeen = messages.filter {
-//            it.receiverId == currentUser?.id && it.status == "delivered"
-//        }
-//        messagesToMarkSeen.forEach { message ->
-//            userViewModel.markMessageAsSeen(message.id, chatId, receiverId)
-//        }
-//    }
-//
-//    Box(modifier = Modifier.fillMaxSize()) {
-//        Column(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .background(Color(0xFFF0F8FF)) // Alice Blue background, or consider a neutral off-white color
-//        ) {
-//            Spacer(modifier = Modifier.height(64.dp))  // Adjust height to match the TopAppBar's height
-//
-//            // Message List with weighted layout
-//            Box(
-//                modifier = Modifier
-//                    .weight(1f)  // Ensure this takes the remaining space
-//                    .fillMaxWidth()
-//                    .background(Color.Transparent)
-//            ) {
-//                MessageList(messages = messages, currentUser = currentUser, listState = listState)
-//            }
-//
-//            Spacer(modifier = Modifier.height(64.dp))  // Adjust height to match the ChatInputField's height
-//        }
-//
-//        // Floating Top App Bar
-//        TopAppBarWithRealtimeStatus(
-//            navController = navController,
-//            receiverId = receiverId,
-//            receiverUser = receiverUser,
-//            typingStatus = typingStatus,
-//            userViewModel = userViewModel
-//        )
-//
-//        // Ensure Chat Input Field and Media Preview are at the bottom of the screen
-//        Column(
-//            modifier = Modifier
-//                .align(Alignment.BottomCenter)
-//                .fillMaxWidth()
-//        ) {
-//            // Media preview floating above the ChatInputField
-//            MediaPreview(mediaUrl = mediaUrl) { mediaUrl = null }
-//
-//            // Chat Input Field
-//            ChatInputField(
-//                message = message,
-//                onMessageChange = { newValue ->
-//                    message = newValue
-//                    userViewModel.updateTypingStatusInRealtimeDatabase(currentUser?.id ?: "", true)
-//                },
-//                onSendMessage = {
-//                    sendMessage(
-//                        message = message,
-//                        mediaUri = mediaUri,
-//                        chatId = chatId,
-//                        receiverId = receiverId,
-//                        currentUser = currentUser,
-//                        userViewModel = userViewModel,
-//                        coroutineScope = coroutineScope,
-//                        listState = listState
-//                    )
-//                    message = ""
-//                    mediaUri = null
-//                    mediaUrl = null  // Clear the mediaUrl after sending the message
-//                },
-//                imagePickerLauncher = imagePickerLauncher,
-//                isTyping = isTyping,
-//                onTypingStopped = {
-//                    userViewModel.updateTypingStatusInRealtimeDatabase(currentUser?.id ?: "", false)
-//                },
-//                mediaUri = mediaUri,
-//                mediaUrl = mediaUrl // Add mediaUrl parameter
-//            )
-//        }
-//    }
-//}
 
 @Composable
 fun MediaPreview(mediaUrl: String?, onCancel: () -> Unit) {
@@ -402,7 +267,8 @@ fun MediaPreview(mediaUrl: String?, onCancel: () -> Unit) {
 fun MessageList(
     messages: List<Message>,
     currentUser: UserRegistration?,
-    listState: LazyListState
+    listState: LazyListState,
+    navController: NavController // Add navController parameter
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -428,8 +294,16 @@ fun MessageList(
                 ) {
                     when (message.type) {
                         MessageType.EVENT -> {
-                            message.mediaUrl?.let { mediaUrl ->
-                                EventMessageItem(mediaUrl = mediaUrl, isSender = isSender)
+                            message.content?.let { eventJson ->
+                                val event = Gson().fromJson(eventJson, Event::class.java)
+                                message.mediaUrl?.let { mediaUrl ->
+                                    EventMessageItem(
+                                        mediaUrl = mediaUrl,
+                                        isSender = isSender,
+                                        navController = navController, // Pass navController
+                                        event = event // Pass event object
+                                    )
+                                }
                             }
                         }
                         MessageType.MEDIA -> {
@@ -455,91 +329,45 @@ fun MessageList(
     }
 }
 
-//ORIGINAL
-//@Composable
-//fun MessageList(
-//    messages: List<Message>,
-//    currentUser: UserRegistration?,
-//    listState: LazyListState
-//) {
-//    Box(
-//        modifier = Modifier.fillMaxSize()
-//    ) {
-//        LazyColumn(
-//            state = listState,
-//            modifier = Modifier
-//                .fillMaxHeight(), // Ensures LazyColumn fills available vertical space
-//            contentPadding = PaddingValues(8.dp) // Padding between list items
-//        ) {
-//            items(messages) { message ->
-//                val isSender = message.senderId == currentUser?.id
-//                val backgroundColor = if (isSender) Color(0xFF0D6EFD) else Color(0xFFCCCCCC)
-//                val textColor = if (isSender) Color.White else Color.Black
-//                val timeColor = if (isSender) Color.Gray else Color.Gray
-//
-//                // Message Column with vertical padding for better separation
-//                Column(
-//                    horizontalAlignment = if (isSender) Alignment.End else Alignment.Start,
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(vertical = 4.dp)  // Reduced padding between message items
-//                ) {
-//                    // Conditionally render Media Message if available
-//                    message.mediaUrl?.let { mediaUrl ->
-//                        MediaMessage(mediaUrl = mediaUrl, isSender = isSender)
-//                    }
-//
-//                    // Conditionally render Text Message if available
-//                    if (message.content.isNotBlank()) {
-//                        MessageBubble(
-//                            message = message,
-//                            backgroundColor = backgroundColor,
-//                            textColor = textColor,
-//                            timeColor = timeColor,
-//                            isSender = isSender
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-
 @Composable
-fun EventMessageItem(mediaUrl: String, isSender: Boolean) {
-    val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    val backgroundColor = if (isSender) Color(0xFF0D6EFD) else Color(0xFFCCCCCC)
-
-    Box(
-        contentAlignment = alignment,
+fun EventMessageItem(
+    mediaUrl: String,
+    isSender: Boolean,
+    navController: NavController, // Add navController parameter
+    event: Event // Add event parameter
+) {
+    Row(
+        horizontalArrangement = if (isSender) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(top = 8.dp)  // Padding for separation
     ) {
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            modifier = Modifier.widthIn(max = 300.dp)
+        Box(
+            modifier = Modifier
+                .width(350.dp)
+                .height(250.dp)
+                .clip(RoundedCornerShape(16.dp))  // Rounded corners for media
+                .background(Color.LightGray.copy(alpha = 0.2f))  // Light background shadow effect
+                .padding(4.dp)  // Small padding inside the image
+                .clickable {
+                    val eventJson = Uri.encode(Gson().toJson(event))
+                    navController.navigate("eventDetails/$eventJson")
+                }
         ) {
-            Column {
-                Image(
-                    painter = rememberImagePainter(data = mediaUrl),
-                    contentDescription = "Event Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-                Text(
-                    text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date()),
-                    style = MaterialTheme.typography.caption,
-                    color = Color.Gray,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(8.dp)
-                )
-            }
+            Image(
+                painter = rememberImagePainter(
+                    data = mediaUrl,
+                    builder = {
+                        placeholder(R.drawable.placeholder)  // Placeholder image from drawable
+                        error(R.drawable.error)  // Error image from drawable
+                    }
+                ),
+                contentDescription = "Event Image",
+                contentScale = ContentScale.Crop,  // Ensures the image covers the allocated space
+                modifier = Modifier
+                    .fillMaxSize()  // Make sure the image fills the allocated space
+                    .clip(RoundedCornerShape(16.dp))  // Rounded corners for media
+            )
         }
     }
 }
@@ -726,7 +554,7 @@ fun sendMessage(
     coroutineScope: CoroutineScope,
     listState: LazyListState,
     isEvent: Boolean = false, // Flag to indicate if the message is an event
-    eventImageUrl: String? = null // Event image URL for event messages
+    event: Event? = null // Full event object for event messages
 ) {
     coroutineScope.launch {
         // Determine the message type based on isEvent flag and mediaUri
@@ -738,18 +566,19 @@ fun sendMessage(
             MessageType.TEXT
         }
 
-        if (isEvent) {
-            Log.d("sendMessage", "Sending an EVENT message with event image URL: $eventImageUrl")
+        if (isEvent && event != null) {
+            val eventJson = Gson().toJson(event)
+            Log.d("sendMessage", "Sending an EVENT message with event: $eventJson")
             userViewModel.sendMessage(
                 Message(
                     id = UUID.randomUUID().toString(),
                     chatId = chatId,
                     senderId = currentUser?.id ?: "",
                     receiverId = receiverId,
-                    content = message,
+                    content = eventJson,
                     timestamp = System.currentTimeMillis(),
                     status = "sent",
-                    mediaUrl = eventImageUrl,
+                    mediaUrl = event.imageUrl,
                     type = messageType
                 )
             )
@@ -791,50 +620,6 @@ fun sendMessage(
         listState.scrollToItem(userViewModel.getChatMessages(chatId).value?.size ?: 0)
     }
 }
-
-//ORIGINAL
-//fun sendMessage(
-//    message: String,
-//    mediaUri: Uri?,
-//    chatId: String,
-//    receiverId: String,
-//    currentUser: UserRegistration?,
-//    userViewModel: UserViewModel,
-//    coroutineScope: CoroutineScope,
-//    listState: LazyListState
-//) {
-//    coroutineScope.launch {
-//        mediaUri?.let { uri ->
-//            val mediaUrl = userViewModel.uploadMedia(chatId, uri)
-//            userViewModel.sendMessage(
-//                Message(
-//                    id = UUID.randomUUID().toString(),
-//                    chatId = chatId,
-//                    senderId = currentUser?.id ?: "",
-//                    receiverId = receiverId,
-//                    content = message,
-//                    timestamp = System.currentTimeMillis(),
-//                    status = "sent",
-//                    mediaUrl = mediaUrl
-//                )
-//            )
-//        } ?: run {
-//            userViewModel.sendMessage(
-//                Message(
-//                    id = UUID.randomUUID().toString(),
-//                    chatId = chatId,
-//                    senderId = currentUser?.id ?: "",
-//                    receiverId = receiverId,
-//                    content = message,
-//                    timestamp = System.currentTimeMillis(),
-//                    status = "sent"
-//                )
-//            )
-//        }
-//        listState.scrollToItem(userViewModel.getChatMessages(chatId).value?.size ?: 0)
-//    }
-//}
-
 
 // Utility function to format timestamp
 fun formatTimestamp(timestamp: Long): String {

@@ -91,19 +91,15 @@ class EventViewModel(private val context: Context) : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-//    private val _events = MutableLiveData<List<Event>>()
-//    val events: LiveData<List<Event>> get() = _events
-
     private val _isRefreshing = MutableLiveData<Boolean>()
     val isRefreshing: LiveData<Boolean> get() = _isRefreshing
 
 
     private var lastDocumentSnapshot: DocumentSnapshot? = null // Tracks the last document
     private var isLoadingMore = false // Prevents multiple simultaneous loads
+
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
-
-//    var isRefreshing = MutableLiveData(false)
 
 
     private fun generatePairingCode(): String {
